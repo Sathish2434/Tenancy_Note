@@ -8,9 +8,10 @@ const JWT_SECRET = process.env.SESSION_SECRET || "your-secret-key";
 export interface AuthenticatedRequest extends Request {
   user?: {
     id: string;
+    createdAt: string;
     email: string;
-    role: string;
     tenantId: string;
+    role?: string;
   };
 }
 
