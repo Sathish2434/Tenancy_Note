@@ -20,14 +20,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Authentication routes
   app.post("/api/auth/login", async (req, res) => {
     try {
+      console.log("Login attempt with body:", req.body);
+      console.log("Body type:", typeof req.body);
+      console.log("Body keys:", Object.keys(req.body || {}));
+      
       const { email, password } = loginSchema.parse(req.body);
+      console.log("Parsed email:", email, "password length:", password.length);
       
       const user = await storage.getUserByEmail(email);
+      console.log("Found user:", user ? "yes" : "no");
       if (!user) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
 
       const isValidPassword = await comparePassword(password, user.password);
+      console.log("Password valid:", isValidPassword);
       if (!isValidPassword) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -59,7 +66,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         },
       });
     } catch (error) {
-      res.status(400).json({ message: "Invalid request data" });
+      console.error("Login error:", error);
+      res.status(400).json({ message: "Invalid request data", error: error.message });
     }
   });
 
@@ -220,12 +228,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
 async function initializeTestData() {
   try {
+    console.log("Initializing test data...");
     // Create tenants
     const acmeTenant = await storage.getTenantBySlug("acme") || 
       await storage.createTenant({ name: "Acme Corporation", slug: "acme", plan: "pro" });
+    console.log("Acme tenant:", acmeTenant);
     
     const globexTenant = await storage.getTenantBySlug("globex") || 
       await storage.createTenant({ name: "Globex Corporation", slug: "globex", plan: "free" });
+    console.log("Globex tenant:", globexTenant);
 
     // Create test users
     const testUsers = [
@@ -239,12 +250,16 @@ async function initializeTestData() {
       const existingUser = await storage.getUserByEmail(userData.email);
       if (!existingUser) {
         const hashedPassword = await hashPassword(userData.password);
-        await storage.createUser({
+        const newUser = await storage.createUser({
           ...userData,
           password: hashedPassword,
         });
+        console.log("Created user:", userData.email, "with ID:", newUser.id);
+      } else {
+        console.log("User already exists:", userData.email);
       }
     }
+    console.log("Test data initialization completed successfully");
   } catch (error) {
     console.error("Failed to initialize test data:", error);
   }

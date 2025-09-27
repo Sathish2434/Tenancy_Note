@@ -121,4 +121,98 @@ export class DatabaseStorage implements IStorage {
   }
 }
 
-export const storage = new DatabaseStorage();
+// Mock storage for development when database is not available
+class MockStorage implements IStorage {
+  private tenants: Tenant[] = [];
+  private users: User[] = [];
+  private notes: Note[] = [];
+
+  async getTenant(id: string): Promise<Tenant | undefined> {
+    return this.tenants.find(t => t.id === id);
+  }
+
+  async getTenantBySlug(slug: string): Promise<Tenant | undefined> {
+    return this.tenants.find(t => t.slug === slug);
+  }
+
+  async createTenant(tenant: InsertTenant): Promise<Tenant> {
+    const newTenant: Tenant = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...tenant,
+      createdAt: new Date(),
+    };
+    this.tenants.push(newTenant);
+    return newTenant;
+  }
+
+  async upgradeTenant(id: string): Promise<Tenant> {
+    const tenant = this.tenants.find(t => t.id === id);
+    if (tenant) {
+      tenant.plan = "pro";
+    }
+    return tenant!;
+  }
+
+  async getUser(id: string): Promise<User | undefined> {
+    return this.users.find(u => u.id === id);
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    return this.users.find(u => u.email === email);
+  }
+
+  async createUser(user: InsertUser): Promise<User> {
+    const newUser: User = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...user,
+      createdAt: new Date(),
+    };
+    this.users.push(newUser);
+    return newUser;
+  }
+
+  async getNotes(tenantId: string): Promise<Note[]> {
+    return this.notes.filter(n => n.tenantId === tenantId);
+  }
+
+  async getNote(id: string, tenantId: string): Promise<Note | undefined> {
+    return this.notes.find(n => n.id === id && n.tenantId === tenantId);
+  }
+
+  async createNote(note: InsertNote): Promise<Note> {
+    const newNote: Note = {
+      id: Math.random().toString(36).substr(2, 9),
+      ...note,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    this.notes.push(newNote);
+    return newNote;
+  }
+
+  async updateNote(id: string, tenantId: string, updates: Partial<Note>): Promise<Note> {
+    const note = this.notes.find(n => n.id === id && n.tenantId === tenantId);
+    if (note) {
+      Object.assign(note, updates, { updatedAt: new Date() });
+    }
+    return note!;
+  }
+
+  async deleteNote(id: string, tenantId: string): Promise<boolean> {
+    const index = this.notes.findIndex(n => n.id === id && n.tenantId === tenantId);
+    if (index !== -1) {
+      this.notes.splice(index, 1);
+      return true;
+    }
+    return false;
+  }
+
+  async getNoteCount(tenantId: string): Promise<number> {
+    return this.notes.filter(n => n.tenantId === tenantId).length;
+  }
+}
+
+// Use mock storage if DATABASE_URL is not properly configured
+export const storage = process.env.DATABASE_URL && process.env.DATABASE_URL.includes('postgresql://') 
+  ? new DatabaseStorage() 
+  : new MockStorage();
