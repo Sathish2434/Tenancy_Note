@@ -66,7 +66,9 @@ export default function Dashboard() {
   const upgradeMutation = useMutation({
     mutationFn: () => api.upgradeTenant(tenant?.slug || ""),
     onSuccess: () => {
+      // Invalidate both auth and notes queries to prevent stale cache and 401 errors
       queryClient.invalidateQueries({ queryKey: ["/api/auth/me"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/notes"] });
       toast({ title: "Successfully upgraded to Pro plan!" });
     },
     onError: (error: ApiError) => {

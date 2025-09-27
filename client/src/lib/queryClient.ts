@@ -1,4 +1,5 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { getAuthHeaders } from "./auth";
 
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
@@ -29,7 +30,16 @@ export const getQueryFn: <T>(options: {
 }) => QueryFunction<T> =
   ({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey.join("/") as string, {
+    const url = queryKey.join("/") as string;
+    
+    // Only add authorization headers for API requests that start with "/api/"
+    const headers: Record<string, string> = {};
+    if (url.startsWith("/api/")) {
+      Object.assign(headers, getAuthHeaders());
+    }
+    
+    const res = await fetch(url, {
+      headers,
       credentials: "include",
     });
 
